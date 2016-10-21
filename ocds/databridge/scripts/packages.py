@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from ocds.storage.backends.couch import CouchStorage
+from ocds.storage.backends.couch import TendersStorage
 import argparse
 import yaml
 import iso8601
@@ -43,7 +43,7 @@ def get_releases(gen, info):
             yield None
 
 
-def dump_package(releases, config):
+def dump_package(releases, config, dates=None):
     info = config['release']
     package = Package(
         releases,
@@ -52,20 +52,27 @@ def dump_package(releases, config):
         info['publicationPolicy'],
         URI
     )
-    path = os.path.join(config['path'], 'release-{}.json'.format(time.time()))
-    with open(path, 'w') as outfile:
-        outfile.write(package.to_json())
+    if dates:
+        path = os.path.join(config['path_for_release_package_btw_dates'], 'release{}-{}.json'.format(dates[0], dates[1]))
+        with open(path, 'w') as outfile:
+            outfile.write(package.to_json())
+    else:
+        path = os.path.join(config['path_for_release_package'], 'release-{}.json'.format(time.time()))
+        with open(path, 'w') as outfile:
+            outfile.write(package.to_json())
 
 
 def run():
     args = parse_args()
     releases = []
     config = read_config(args.config)
-    storage = CouchStorage(config.get('tenders_db'))
+    storage = TendersStorage(config.get('tenders_db'))
     info = config.get('release')
 
-    if not os.path.exists(config.get('path')):
-            os.makedirs(config.get('path'))
+    if not os.path.exists(config.get('path_for_release_package')):
+            os.makedirs(config.get('path_for_release_package'))
+    if not os.path.exists(config.get('path_for_release_package_btw_dates')):
+        os.makedirs(config.get('path_for_release_package_btw_dates'))
 
     if args.dates:
         datestart = parse_date(args.dates[0])
@@ -73,7 +80,7 @@ def run():
         for release in get_releases(storage.get_tenders_between_dates(datestart, datefinish), info):
             if release:
                 releases.append(release)
-        dump_package(releases, config)
+        dump_package(releases, config, [datestart, datefinish])
     else:
         count = 0
         if not args.number:
