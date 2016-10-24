@@ -28,18 +28,23 @@ def run():
     info = config.get('release')
 
     tenders = TendersStorage(config.get('tenders_db'))
-    path = os.path.join(config.get('path'), 'releases')
+    path = os.path.join(config.get('path_for_release'), 'releases')
     releases = FSStorage(path)
-    #meta = CouchStorage(config.get('releases_db'))
 
     count = 0
-    for tender in tenders:
+    counter = 0
+    fold = 1
+    for tender in tenders.get_all():
         sys.stdout.write('Parsed {} tenders\r'.format(count))
         sys.stdout.flush()
         try:
+            if counter == 1000:
+                fold += 1
+                counter = 0
             if 'ТЕСТУВАННЯ'.decode('utf-8') not in tender['title']:
                 release = get_release_from_tender(tender, info['prefix'])
-                releases.save(release)
+                releases.save(release, fold)
                 count += 1
+                counter += 1
         except KeyError as e:
             print e.message
