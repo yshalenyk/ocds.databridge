@@ -1,13 +1,19 @@
 # -*- coding: utf-8 -*-
+import argparse
+import yaml
+import os
+import sys
+import logging
+from ocds.export.release import release_tender
+from ocds.export.helpers import mode_test
 from ocds.storage import (
     TendersStorage,
     FSStorage
 )
-import argparse
-import yaml
-import os
-from ocds.export.release import get_release_from_tender
-import sys
+from ocds.storage.helpers import date_path
+
+
+Logger = logging.getLogger(__name__)
 
 
 def read_config(path):
@@ -28,18 +34,15 @@ def run():
     info = config.get('release')
 
     tenders = TendersStorage(config.get('tenders_db'))
-    path = os.path.join(config.get('path'), 'releases')
-    releases = FSStorage(path)
-    #meta = CouchStorage(config.get('releases_db'))
+    releases = FSStorage(config.get('path'), date_path)
 
     count = 0
     for tender in tenders:
-        sys.stdout.write('Parsed {} tenders\r'.format(count))
-        sys.stdout.flush()
+        Logger.info('Parsed {} docs'.format(count))
         try:
-            if 'ТЕСТУВАННЯ'.decode('utf-8') not in tender['title']:
-                release = get_release_from_tender(tender, info['prefix'])
+            if mode_test(tender):
+                release = release_tender(tender, info['prefix'])
                 releases.save(release)
                 count += 1
         except KeyError as e:
-            print e.message
+            Logger.fatal('Error: {}'.format(e))

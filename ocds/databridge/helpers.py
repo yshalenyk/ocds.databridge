@@ -1,7 +1,7 @@
 import gevent
 import logging
 from .exceptions import LBMismatchError
-from ocds.export.release import get_release_from_tender
+from ocds.export.release import release_tender
 
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ def create_releases(prefix, src, dest):
                 logger.info('Got {} tenders'.format(len(batch)))
                 for tender in batch:
                     try:
-                        release = get_release_from_tender(tender, prefix)
+                        release = release_tender(tender, prefix)
                         logger.info("generated release for tender "
                                     "{}".format(tender['id']))
                         dest.put(release)
